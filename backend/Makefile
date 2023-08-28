@@ -15,4 +15,4 @@ docker-stop:
 	docker stop optimism-gas-tracker; docker kill optimism-gas-tracker; docker rm optimism-gas-tracker;
 
 docker-start:
-	docker run --name=optimism-gas-tracker -d --restart=unless-stopped --log-driver local --log-opt max-size=2gb --env-file .env -p 8000:8000 buildooor/backend
+	docker run -d --name=optimism-gas-tracker -v /tmp/db:/tmp/db --restart=unless-stopped --log-driver local --log-opt max-size=2gb --env-file .env -p 8000:8000 buildooor/backend
