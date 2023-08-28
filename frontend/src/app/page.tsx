@@ -108,6 +108,22 @@ function useDate() {
   }
 }
 
+function useRelativeDate(timestamp: number) {
+  const { isLoading, data, error } = useQuery([`relativedate:${timestamp}`, timestamp], async () => {
+    if (!timestamp) {
+      return ''
+    }
+    return DateTime.fromSeconds(timestamp).toRelative()
+  }, {
+    enabled: true,
+    refetchInterval: 1 * 1000
+  })
+
+  return {
+    date: data ?? ''
+  }
+}
+
 function useGasEstimates() {
   const { isLoading, data, error } = useQuery(['gasEstimates'], async () => {
     return fetch(apiUrl, {
@@ -239,6 +255,7 @@ function useGetCurrentEthUsdPrice() {
   return {
     price: data?.price,
     priceDisplay: data?.priceDisplay,
+    timestamp: data?.timestamp,
   }
 }
 
@@ -256,14 +273,15 @@ function useGetCurrentGasPrice() {
       })
     })
     .then(response => response.json())
-    .then((data: any) => data.result.gasPrice)
+    .then((data: any) => data.result)
   }, {
     enabled: true,
     refetchInterval: refreshInterval
   })
 
   return {
-    gasPrice: data
+    gasPrice: data?.gasPrice,
+    timestamp: data?.timestamp,
   }
 }
 
@@ -289,6 +307,7 @@ function SubHeader (props: any) {
 
 function GasEstimates () {
   const { estimates } = useGasEstimates()
+  console.log(estimates)
 
   return (
     <div className={styles.gasEstimates}>
@@ -298,6 +317,7 @@ function GasEstimates () {
           <tr>
             <th>Action</th>
             <th>Estimated Cost</th>
+            <th></th>
             <th>Gas Limit</th>
           </tr>
         </thead>
@@ -306,6 +326,7 @@ function GasEstimates () {
             <tr key={index}>
               <td>{item.action}</td>
               <td>{item.usdDisplay}</td>
+              <td>Ξ{Number(Number(item.eth)?.toFixed(5))}</td>
               <td title={`Based on ${item.gasLimit} gas limit`}>{item.gasLimitDisplay}</td>
             </tr>
           ))}
@@ -316,7 +337,9 @@ function GasEstimates () {
 }
 
 function PriceBoxes (props: any) {
-  const { priceDisplay, gasPrice } = props
+  const { priceDisplay, gasPrice, priceTimestamp, gasPriceTimestamp } = props
+  const { date: lastUpdatedGasPriceTimestamp } = useRelativeDate(gasPriceTimestamp)
+  const { date: lastUpdatedPriceTimestamp } = useRelativeDate(priceTimestamp)
 
   return (
     <div className={styles.boxesContainer}>
@@ -337,6 +360,11 @@ function PriceBoxes (props: any) {
               <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(255, 255, 255, .1)' }} width="100px" height={20} />
             )}
             </div>
+            {!!gasPriceTimestamp && (
+              <div title="Last updated" className={styles.boxLastUpdated}>
+                Last updated {lastUpdatedGasPriceTimestamp}
+              </div>
+            )}
           </div>
         <div className={styles.box}>
           <div title="Current ETH Price in USD" className={styles.boxHeader}>ETH Price</div>
@@ -347,6 +375,11 @@ function PriceBoxes (props: any) {
               <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(255, 255, 255, .1)' }} width="160px" height={30} />
             )}
             </div>
+            {!!priceTimestamp && (
+              <div title="Last updated" className={styles.boxLastUpdated}>
+                Last updated {lastUpdatedPriceTimestamp}
+              </div>
+            )}
         </div>
       </div>
     </div>
@@ -416,7 +449,7 @@ function Footer () {
           <span>Powered by</span> <a href="https://www.optimism.io/" target="_blank"><Image src="/assets/optimism.svg" alt="" width={135} height={25} /> <span>Mainnet</span></a></div>
         <div className={styles.footerLinks}>
           <div className={styles.copyright}>© {new Date().getFullYear()}</div>
-          <em><a href="https://github.com/buildooor" target="_blank">Built by a buildooor</a></em>
+          <em><a href="https://github.com/buildooor" target="_blank">Built by a buildooooor</a></em>
         </div>
       </footer>
   )
@@ -436,8 +469,8 @@ function Main() {
   const { timeRange, setTimeRange } = useTimeRange('10m')
   const { timeRange: tableTimeRange, setTimeRange: setTableTimeRange } = useTimeRange('1h')
   const { gasPrices } = useGasPrices(timeRange)
-  const { priceDisplay } = useGetCurrentEthUsdPrice()
-  const { gasPrice } = useGetCurrentGasPrice()
+  const { priceDisplay, timestamp: priceTimestamp } = useGetCurrentEthUsdPrice()
+  const { gasPrice, timestamp: gasPriceTimestamp } = useGetCurrentGasPrice()
   const { topGasSpenders } = useTopGasSpenders(tableTimeRange)
   const { topGasGuzzlers } = useTopGasGuzzlers(tableTimeRange)
   const [activeTab, setActiveTab] = useState('tab1');
@@ -454,7 +487,7 @@ function Main() {
         <TimeRange onChange={setTimeRange} timeRange={timeRange} />
       </div>
       <LineChart timeRange={timeRange} gasPrices={gasPrices} />
-      <PriceBoxes priceDisplay={priceDisplay} gasPrice={gasPrice} />
+      <PriceBoxes priceDisplay={priceDisplay} gasPrice={gasPrice} priceTimestamp={priceTimestamp} gasPriceTimestamp={gasPriceTimestamp} />
       <GasEstimates />
       <div className={styles.tableTabsContainer}>
         <div className={styles.tableTabs}>

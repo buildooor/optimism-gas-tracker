@@ -247,7 +247,8 @@ export class Controller {
     const priceDisplay = currencyFormatter.format(price)
     return {
       price,
-      priceDisplay
+      priceDisplay,
+      timestamp: Math.floor(Date.now() / 1000)
     }
   }
 
@@ -431,7 +432,8 @@ export class Controller {
   async handleGetCurrentGasPrice () {
     const gasPrice = await this.getGasPrice()
     return {
-      gasPrice
+      gasPrice,
+      timestamp: Math.floor(Date.now() / 1000)
     }
   }
 

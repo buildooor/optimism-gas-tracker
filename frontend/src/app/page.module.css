@@ -302,6 +302,14 @@
   line-height: 32px;
 }
 
+.boxLastUpdated {
+  margin-top: 0.5rem;
+  font-size: 0.6rem;
+  opacity: 0.3;
+  color: #fff;
+  font-style: italic;
+}
+
 .infoFooter {
   opacity: 0.5;
   font-size: 0.6rem;
@@ -317,6 +325,7 @@
   justify-content: space-between;
   align-items: center;
   font-weight: 700;
+  padding: 0 1rem;
 }
 
 .footerLinks {
