@@ -451,6 +451,7 @@ export class Controller {
         const keyParts = data.key.toString().split('-')
         const timestamp = keyParts[0]
         const address = keyParts[1]
+        console.log(kind, endTime - startTime, timestamp, results.length)
         results.push({
           timestamp,
           address,

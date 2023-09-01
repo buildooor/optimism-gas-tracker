@@ -307,7 +307,6 @@ function SubHeader (props: any) {
 
 function GasEstimates () {
   const { estimates } = useGasEstimates()
-  console.log(estimates)
 
   return (
     <div className={styles.gasEstimates}>
