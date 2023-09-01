@@ -9,6 +9,7 @@ import wait from 'wait'
 import { dbPath } from './config'
 import { promiseQueue } from './utils/promiseQueue'
 import { DateTime } from 'luxon'
+import { Db } from './Db'
 // const d3 = require('fix-esm').require('d3')
 
 const rpcUrls: string[] = [
@@ -63,8 +64,10 @@ export class Controller {
   provider: any
   gasPriceProvider: any
   promiseCache :any = {}
+  db: any
 
   constructor() {
+    this.db = new Db()
     this.provider = getRpcProvider('optimism')
     this.gasPriceProvider = new providers.StaticJsonRpcProvider(process.env.GAS_PRICE_OPTIMISM_RPC || process.env.OPTIMISM_RPC || rpcUrls[0])
   }
@@ -111,7 +114,13 @@ export class Controller {
     }
 
     const key = `${block.timestamp}-${block.number}`
-    await gasDb.put(key, JSON.stringify(value))
+    // await gasDb.put(key, JSON.stringify(value))
+    await this.db.upsertGasPrice({
+      gasPrice: gasPrice.gwei,
+      ethPriceUsd: ethPrice,
+      blockNumber: block.number,
+      timestamp: block.timestamp
+    })
   }
 
   async startGasPricePoller () {
@@ -125,28 +134,14 @@ export class Controller {
     }
   }
 
-  async getHistoricalGasPrices (startTime: number, endTime: number): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      const results: any[] = []
-
-      const stream = gasDb.createReadStream({
-        gte: `${startTime}-`,
-        lte: `${endTime}-\xff`
-      })
-
-      stream.on('data', function (data: any) {
-        const parsedValue = JSON.parse(data.value.toString())
-        results.push(parsedValue)
-      })
-
-      stream.on('end', function () {
-        resolve(results)
-      })
-
-      stream.on('error', function (error) {
-        reject(error)
-      })
+  async getHistoricalGasPrices (startTimestamp: number, endTimestamp: number): Promise<any[]> {
+    const historical = await this.db.getGasPrices({
+      startTimestamp: startTimestamp,
+      endTimestamp: endTimestamp,
+      offset: 0
     })
+
+    return historical
   }
 
   async syncTopGasSpenders (startBlockNumber: number, endBlockNumber: number) {
@@ -191,20 +186,32 @@ export class Controller {
               }
 
               const key = `${block.timestamp}-${tx.from.toLowerCase()}-${tx.hash}`
+              const ethPriceUsd = await this.getClosestEthPriceUsd(block.timestamp)
 
               const value = {
+                timestamp: block.timestamp,
+                txHash: tx.hash,
                 gasUsed: gasUsed.toString(),
-                gasPrice: tx.gasPrice.toString()
+                gasPrice: tx.gasPrice.toString(),
+                ethPriceUsd
               }
 
               // Insert into LevelDB
-              await topGasSpenders.put(key, JSON.stringify(value))
+              // await topGasSpenders.put(key, JSON.stringify(value))
+              await this.db.upsertSpender({
+                address: tx.from.toLowerCase(),
+                ...value
+              })
 
               if (tx.to) {
                 const _key = `${block.timestamp}-${tx.to.toLowerCase()}-${tx.hash}`
 
                 // Insert into LevelDB
-                await topGasGuzzlers.put(_key, JSON.stringify(value))
+                // await topGasGuzzlers.put(_key, JSON.stringify(value))
+                await this.db.upsertGuzzler({
+                  address: tx.to.toLowerCase(),
+                  ...value
+                })
               }
             } catch (err: any) {
               console.error(err)
@@ -384,7 +391,7 @@ export class Controller {
   async handleGetTopGasSpenders (params: any[]) {
     const timeRange = params?.[0]?.toLowerCase()
     const timeRangeSeconds = this.getTimeRangeToSeconds(timeRange)
-    const currentTime = Math.floor(DateTime.fromSeconds(Math.floor(Date.now() / 1000)).toUTC().startOf('hour').toSeconds())
+    const currentTime = Math.floor(DateTime.fromSeconds(Math.floor(Date.now() / 1000)).toUTC().startOf('minute').toSeconds())
     const gasSpenders = await this.rankAddressesForTimeRange('spenders', currentTime - timeRangeSeconds, currentTime)
     return {
       gasSpenders: gasSpenders.slice(0, 25)
@@ -394,7 +401,7 @@ export class Controller {
   async handleGetTopGasGuzzlers (params: any[]) {
     const timeRange = params?.[0]?.toLowerCase()
     const timeRangeSeconds = this.getTimeRangeToSeconds(timeRange)
-    const currentTime = Math.floor(DateTime.fromSeconds(Math.floor(Date.now() / 1000)).toUTC().startOf('hour').toSeconds())
+    const currentTime = Math.floor(DateTime.fromSeconds(Math.floor(Date.now() / 1000)).toUTC().startOf('minute').toSeconds())
     const gasGuzzlers = await this.rankAddressesForTimeRange('guzzlers', currentTime - timeRangeSeconds, currentTime)
     return {
       gasGuzzlers: gasGuzzlers.slice(0, 25)
@@ -439,93 +446,54 @@ export class Controller {
     }
   }
 
-  async queryTransactions (kind: string, startTime: number, endTime: number): Promise<any[]> {
-    const key = `queryTransactions-${kind}-${startTime}-${endTime}`
-    const cachedP = await this.promiseCache[key]
-    if (cachedP) {
-      console.log('cachedP', key)
-      return cachedP
+  async queryTransactions (kind: string, startTimestamp: number, endTimestamp: number): Promise<any[]> {
+    let items :any = []
+    if (kind === 'guzzlers') {
+      items = await this.db.getGuzzlers({
+        startTimestamp,
+        endTimestamp,
+        offset: 0
+      })
     } else {
-      console.log('no cache', key)
+      items = await this.db.getSpenders({
+        startTimestamp,
+        endTimestamp,
+        offset: 0
+      })
     }
 
-    const p: any = new Promise((resolve, reject) => {
-      const results: any[] = []
-      const stream = (kind === 'guzzlers' ? topGasGuzzlers : topGasSpenders).createReadStream({
-        gte: `${startTime}-`,
-        lte: `${endTime}-\xff`
-      })
-
-      stream.on('data', function (data: any) {
-        const parsedValue = JSON.parse(data.value.toString())
-        const keyParts = data.key.toString().split('-')
-        const timestamp = keyParts[0]
-        const address = keyParts[1]
-        console.log(kind, endTime - startTime, timestamp, results.length)
-        results.push({
-          timestamp,
-          address,
-          gasUsed: BigInt(parsedValue.gasUsed),
-          gasPrice: BigInt(parsedValue.gasPrice)
-        })
-      })
-
-      stream.on('end', function () {
-        resolve(results)
-      })
-
-      stream.on('error', function (error: any) {
-        reject(error)
-      })
+    return items.map((item: any) => {
+      return {
+        timestamp: item.timestamp,
+        address: item.address,
+        gasUsed: BigInt(item.gasUsed),
+        gasPrice: BigInt(item.gasPrice),
+        ethPriceUsd: item.ethPriceUsd
+      }
     })
 
-    this.promiseCache[key] = p
+    // const key = `queryTransactions-${kind}-${startTime}-${endTime}`
+    // const cachedP = await this.promiseCache[key]
+    // if (cachedP) {
+    //   console.log('cachedP', key)
+    //   return cachedP
+    // } else {
+    //   console.log('no cache', key)
+    // }
 
-    return p
+    // this.promiseCache[key] = p
+
+    // return p
   }
 
   async getClosestEthPriceUsd (timestamp: number): Promise<number> {
-    let closestEthPrice: number | null = null;
-    let smallestDifference = Infinity;
+    const price = await this.db.getClosestEthPriceUsd(timestamp)
 
-    // Create a read stream with keys that are greater than or equal to the given timestamp
-    const readStream = gasDb.createReadStream({
-      gte: `${timestamp}-`,
-      reverse: true, // Start from the closest higher timestamp and go downwards
-      limit: 1 // Limit to one result
-    });
-
-    // Check the closest higher timestamp
-    for await (const { key, value } of readStream as AsyncIterable<{ key: string, value: string }>) {
-      const record = JSON.parse(value);
-      closestEthPrice = record.ethPrice;
-      smallestDifference = Math.abs(record.timestamp - timestamp);
+    if (!price) {
+      throw new Error("No entries found in the database, which should not happen.")
     }
 
-    // Create another read stream for keys that are smaller than the given timestamp
-    const readStreamLower = gasDb.createReadStream({
-      lt: `${timestamp}-`,
-      reverse: true, // Start from the closest lower timestamp and go downwards
-      limit: 1 // Limit to one result
-    });
-
-    // Check the closest lower timestamp
-    for await (const { key, value } of readStreamLower as AsyncIterable<{ key: string, value: string }>) {
-      const record = JSON.parse(value);
-      const difference = Math.abs(record.timestamp - timestamp);
-
-      if (difference < smallestDifference) {
-        closestEthPrice = record.ethPrice;
-      }
-    }
-
-    // If the database has at least one entry, closestEthPrice should be non-null.
-    if (closestEthPrice !== null) {
-      return closestEthPrice;
-    } else {
-      // This should never happen if the database has at least one entry.
-      throw new Error("No entries found in the database, which should not happen.");
-    }
+    return price
   }
 
   async rankAddressesForTimeRange (kind: string, startTime: number, endTime: number): Promise<any[]> {
@@ -534,8 +502,7 @@ export class Controller {
 
     for (const tx of transactions) {
       const totalGas = BigInt(tx.gasUsed * tx.gasPrice)
-      const ethPriceUsd = await this.getClosestEthPriceUsd(tx.timestamp)
-      const totalGasUsd = Number(formatUnits(totalGas.toString(), 18)) * ethPriceUsd
+      const totalGasUsd = Number(formatUnits(totalGas.toString(), 18)) * tx.ethPriceUsd
       if (gasUsageByAddress[tx.address]) {
         const v = BigInt(gasUsageByAddress[tx.address].totalGas)
         const res = BigInt(totalGas) + v

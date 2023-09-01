@@ -26,9 +26,12 @@
     "linear-scale": "^0.0.3",
     "luxon": "^3.3.0",
     "memory-cache": "^0.2.0",
+    "minimist": "^1.2.8",
     "p-queue": "6.6.2",
+    "pg-promise": "^11.5.4",
     "pidusage": "^3.0.2",
     "subleveldown": "^6.0.1",
+    "uuid": "^9.0.0",
     "wait": "^0.4.2"
   },
   "devDependencies": {
