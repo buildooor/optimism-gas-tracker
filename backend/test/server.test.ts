@@ -17,7 +17,7 @@ describe('Server', () => {
     expect(result.estimates[0].action).toBe('ETH Send')
     expect(result.estimates[0].usd).toBeGreaterThan(0)
   }, 60 * 1000)
-  it.only('getHistoricalGasPrices', async () => {
+  it('getHistoricalGasPrices', async () => {
     const res = await request(app).post('/').send({ method: 'gasTracker_getHistoricalGasPrices', params: [], id: 1 })
     const { result } = res.body
     console.log(result)
@@ -29,8 +29,8 @@ describe('Server', () => {
     console.log(result)
     expect(result.gasGuzzlers.length).toBeGreaterThan(0)
   }, 5 * 60 * 1000)
-  it('getTopGasSpenders', async () => {
-    const res = await request(app).post('/').send({ method: 'gasTracker_getTopGasSpenders', params: [], id: 1 })
+  it.only('getTopGasSpenders', async () => {
+    const res = await request(app).post('/').send({ method: 'gasTracker_getTopGasSpenders', params: ['7d'], id: 1 })
     const { result } = res.body
     console.log(result)
     expect(result.gasSpenders.length).toBeGreaterThan(0)

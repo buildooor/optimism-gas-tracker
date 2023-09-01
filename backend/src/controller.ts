@@ -9,7 +9,7 @@ import wait from 'wait'
 import { dbPath } from './config'
 import { promiseQueue } from './utils/promiseQueue'
 import { DateTime } from 'luxon'
-const d3 = require('fix-esm').require('d3')
+// const d3 = require('fix-esm').require('d3')
 
 const rpcUrls: string[] = [
   // 'https://rpc.ankr.com/optimism',
@@ -32,6 +32,7 @@ const rpcUrls: string[] = [
 const cache = new mcache.Cache()
 
 const db = level(dbPath)
+console.log(dbPath)
 const topGasSpenders = subleveldown(db, 'gasSpenders')
 const topGasGuzzlers = subleveldown(db, 'gasGuzzlers')
 const gasDb = subleveldown(db, 'gasPrice')
@@ -383,7 +384,7 @@ export class Controller {
     const timeRange = params?.[0]?.toLowerCase()
     const timeRangeSeconds = this.getTimeRangeToSeconds(timeRange)
     const currentTime = Math.floor(Date.now() / 1000)
-    const gasSpenders = await this.rankSpendersAddressesForTimeRange(currentTime - timeRangeSeconds, currentTime)
+    const gasSpenders = await this.rankAddressesForTimeRange('spenders', currentTime - timeRangeSeconds, currentTime)
     return {
       gasSpenders: gasSpenders.slice(0, 25)
     }
@@ -393,7 +394,7 @@ export class Controller {
     const timeRange = params?.[0]?.toLowerCase()
     const timeRangeSeconds = this.getTimeRangeToSeconds(timeRange)
     const currentTime = Math.floor(Date.now() / 1000)
-    const gasGuzzlers = await this.rankGuzzlersAddressesForTimeRange(currentTime - timeRangeSeconds, currentTime)
+    const gasGuzzlers = await this.rankAddressesForTimeRange('guzzlers', currentTime - timeRangeSeconds, currentTime)
     return {
       gasGuzzlers: gasGuzzlers.slice(0, 25)
     }
@@ -437,10 +438,10 @@ export class Controller {
     }
   }
 
-  async querySpenderTransactions (startTime: number, endTime: number): Promise<any[]> {
+  async queryTransactions (kind: string, startTime: number, endTime: number): Promise<any[]> {
     return new Promise((resolve, reject) => {
       const results: any[] = []
-      const stream = topGasSpenders.createReadStream({
+      const stream = (kind === 'guzzlers' ? topGasGuzzlers : topGasSpenders).createReadStream({
         gte: `${startTime}-`,
         lte: `${endTime}-\xff`
       })
@@ -448,8 +449,10 @@ export class Controller {
       stream.on('data', function (data: any) {
         const parsedValue = JSON.parse(data.value.toString())
         const keyParts = data.key.toString().split('-')
+        const timestamp = keyParts[0]
         const address = keyParts[1]
         results.push({
+          timestamp,
           address,
           gasUsed: BigInt(parsedValue.gasUsed),
           gasPrice: BigInt(parsedValue.gasPrice)
@@ -466,89 +469,82 @@ export class Controller {
     })
   }
 
-  async queryGuzzlersTransactions(startTime: number, endTime: number): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      const results: any[] = []
-      const stream = topGasGuzzlers.createReadStream({
-        gte: `${startTime}-`,
-        lte: `${endTime}-\xff`
-      })
+  async getClosestEthPriceUsd(timestamp: number): Promise<number> {
+    let closestEthPrice: number | null = null;
+    let smallestDifference = Infinity;
 
-      stream.on('data', function (data: any) {
-        const parsedValue = JSON.parse(data.value.toString())
-        const keyParts = data.key.toString().split('-')
-        const address = keyParts[1]
-        results.push({
-          address,
-          gasUsed: BigInt(parsedValue.gasUsed),
-          gasPrice: BigInt(parsedValue.gasPrice)
-        })
-      })
+    // Create a read stream with keys that are greater than or equal to the given timestamp
+    const readStream = gasDb.createReadStream({
+      gte: `${timestamp}-`,
+      reverse: true, // Start from the closest higher timestamp and go downwards
+      limit: 1 // Limit to one result
+    });
 
-      stream.on('end', function () {
-        resolve(results)
-      })
+    // Check the closest higher timestamp
+    for await (const { key, value } of readStream as AsyncIterable<{ key: string, value: string }>) {
+      const record = JSON.parse(value);
+      closestEthPrice = record.ethPrice;
+      smallestDifference = Math.abs(record.timestamp - timestamp);
+    }
 
-      stream.on('error', function (error: any) {
-        reject(error)
-      })
-    })
+    // Create another read stream for keys that are smaller than the given timestamp
+    const readStreamLower = gasDb.createReadStream({
+      lt: `${timestamp}-`,
+      reverse: true, // Start from the closest lower timestamp and go downwards
+      limit: 1 // Limit to one result
+    });
+
+    // Check the closest lower timestamp
+    for await (const { key, value } of readStreamLower as AsyncIterable<{ key: string, value: string }>) {
+      const record = JSON.parse(value);
+      const difference = Math.abs(record.timestamp - timestamp);
+
+      if (difference < smallestDifference) {
+        closestEthPrice = record.ethPrice;
+      }
+    }
+
+    // If the database has at least one entry, closestEthPrice should be non-null.
+    if (closestEthPrice !== null) {
+      return closestEthPrice;
+    } else {
+      // This should never happen if the database has at least one entry.
+      throw new Error("No entries found in the database, which should not happen.");
+    }
   }
 
-  async rankSpendersAddressesForTimeRange (startTime: number, endTime: number): Promise<any[]> {
-    const transactions = await this.querySpenderTransactions(startTime, endTime)
+  async rankAddressesForTimeRange (kind: string, startTime: number, endTime: number): Promise<any[]> {
+    const transactions = await this.queryTransactions(kind, startTime, endTime)
     const gasUsageByAddress: any = {}
 
     for (const tx of transactions) {
       const totalGas = BigInt(tx.gasUsed * tx.gasPrice)
+      const ethPriceUsd = await this.getClosestEthPriceUsd(tx.timestamp)
+      const totalGasUsd = Number(formatUnits(totalGas.toString(), 18)) * ethPriceUsd
       if (gasUsageByAddress[tx.address]) {
-        const v = BigInt(gasUsageByAddress[tx.address])
-        gasUsageByAddress[tx.address] = BigInt(totalGas) + v
-      } else {
-        gasUsageByAddress[tx.address] = totalGas
-      }
-    }
+        const v = BigInt(gasUsageByAddress[tx.address].totalGas)
+        const res = BigInt(totalGas) + v
 
-    const sortedAddresses = Object.entries(gasUsageByAddress)
-      .map(([address, totalGas]) => {
-        const ethPrice = 1650
-        const totalGasEth = formatUnits((totalGas as any).toString(), 18)
-        const totalGasUsd = Number(totalGasEth) * ethPrice
-        return {
-          address,
-          totalGas: totalGasEth,
-          totalGasUsd,
-          totalGasUsdDisplay: currencyFormatter.format(totalGasUsd)
+        const v1 = gasUsageByAddress[tx.address].totalGasUsd
+        const res1 = totalGasUsd + Number(v1)
+        gasUsageByAddress[tx.address].totalGas = res
+        gasUsageByAddress[tx.address].totalGasUsd = res1
+      } else {
+        gasUsageByAddress[tx.address] = {
+          totalGas,
+          totalGasUsd
         }
-      })
-      .sort((a: any, b: any) => (Number(b.totalGasUsd) - Number(a.totalGasUsd)))
-
-    return sortedAddresses
-  }
-
-  async rankGuzzlersAddressesForTimeRange (startTime: number, endTime: number): Promise<any[]> {
-    const transactions = await this.queryGuzzlersTransactions(startTime, endTime)
-    const gasUsageByAddress: any = {}
-
-    for (const tx of transactions) {
-      const totalGas = BigInt(tx.gasUsed * tx.gasPrice)
-      if (gasUsageByAddress[tx.address]) {
-        const v = BigInt(gasUsageByAddress[tx.address])
-        gasUsageByAddress[tx.address] = BigInt(totalGas) + v
-      } else {
-        gasUsageByAddress[tx.address] = totalGas
       }
     }
 
     const sortedAddresses = Object.entries(gasUsageByAddress)
-      .map(([address, totalGas]) => {
-        const ethPrice = 1650
-        const totalGasEth = formatUnits((totalGas as any).toString(), 18)
-        const totalGasUsd = Number(totalGasEth) * ethPrice
+      .map(([address, item]: any) => {
+        const { totalGas, totalGasUsd } = item
+        const totalGasEth = formatUnits(totalGas.toString(), 18)
         return {
           address,
           totalGas: totalGasEth,
-          totalGasUsd,
+          totalGasUsd: totalGasUsd,
           totalGasUsdDisplay: currencyFormatter.format(totalGasUsd)
         }
       })

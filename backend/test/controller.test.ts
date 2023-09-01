@@ -13,8 +13,17 @@ describe('Controller', () => {
     console.log(eth, usd)
     expect(eth).toBeTruthy()
   }, 60 * 1000)
-  it.only('gas price poller', async () => {
+  it('gas price poller', async () => {
     const controller = new Controller()
     await controller.startGasPricePoller()
+  }, 60 * 1000)
+  it.only('getClosestEthPriceUsd', async () => {
+    const controller = new Controller()
+    let price = await controller.getClosestEthPriceUsd(1692766818)
+    console.log(price)
+    expect(price).toBeTruthy()
+    // let price = await controller.getClosestEthPriceUsd(1693544241)
+    // console.log(price)
+    // expect(price).toBeTruthy()
   }, 60 * 1000)
 })

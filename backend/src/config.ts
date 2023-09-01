@@ -1,3 +1,4 @@
+import path from 'path'
 import dotenv from 'dotenv'
 dotenv.config()
 
@@ -8,4 +9,4 @@ export const rpcUrls: any = {
   ethereum: process.env.ETHEREUM_RPC,
   optimism: process.env.OPTIMISM_RPC,
 }
-export const dbPath = process.env.DB_PATH ?? './db'
+export const dbPath = process.env.DB_PATH ?? path.resolve(__dirname, '../db')
