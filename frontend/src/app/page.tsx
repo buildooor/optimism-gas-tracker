@@ -4,7 +4,6 @@ import Image from 'next/image'
 import styles from './page.module.css'
 import { DateTime } from 'luxon'
 import { LineChart } from './components/LineChart'
-import { useInterval } from 'react-use'
 import { useQuery } from 'react-query'
 import { QueryClient, QueryClientProvider } from 'react-query';
 import Skeleton from '@mui/material/Skeleton'
@@ -40,55 +39,57 @@ const Countdown = ({ initialCount = 10 }) => {
 const GasTable = (props: any) => {
   const { title, subtitle, gasData } = props
   return (
-    <div className={styles.GasTable}>
-      <table>
-        <thead>
-          <tr>
-            <th></th>
-            <th>Address</th>
-            <th>Gas Used</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {!gasData?.length && (
-            [1,2,3].map((_, i: number) => {
+    <div className={styles.gasTable}>
+      <div className={styles.tableContainer}>
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Address</th>
+              <th>Gas Used</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {!gasData?.length && (
+              [1,2,3].map((_, i: number) => {
+                return (
+                  <tr key={i}>
+                    <td>
+                      <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(0, 0, 0, .1)' }} width="100%" height={30} />
+                    </td>
+                    <td>
+                      <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(0, 0, 0, .1)' }} width="100%" height={30} />
+                    </td>
+                    <td>
+                      <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(0, 0, 0, .1)' }} width="100%" height={30} />
+                    </td>
+                    <td>
+                      <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(0, 0, 0, .1)' }} width="100%" height={30} />
+                    </td>
+                  </tr>
+                )
+              })
+            )}
+            {gasData.map((item: any, index: number) => {
+              const explorerUrl = `https://optimistic.etherscan.io/address/${item.address}`
               return (
-                <tr key={i}>
-                  <td>
-                    <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(0, 0, 0, .1)' }} width="100%" height={30} />
+                <tr key={item.address}>
+                  <td className={styles.rank}>
+                    {index === 0 ? '🥇' : ''}
+                    {index === 1 ? '🥈' : ''}
+                    {index === 2 ? '🥉' : ''}
+                    {index + 1}
                   </td>
-                  <td>
-                    <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(0, 0, 0, .1)' }} width="100%" height={30} />
-                  </td>
-                  <td>
-                    <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(0, 0, 0, .1)' }} width="100%" height={30} />
-                  </td>
-                  <td>
-                    <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(0, 0, 0, .1)' }} width="100%" height={30} />
-                  </td>
+                  <td><a className={styles.code} href={explorerUrl} target="_blank">{item.address}</a></td>
+                  <td>{item.totalGasUsdDisplay}</td>
+                  <td>Ξ{Number(Number(item.totalGas)?.toFixed(5))}</td>
                 </tr>
               )
-            })
-          )}
-          {gasData.map((item: any, index: number) => {
-            const explorerUrl = `https://optimistic.etherscan.io/address/${item.address}`
-            return (
-              <tr key={item.address}>
-                <td className={styles.rank}>
-                  {index === 0 ? '🥇' : ''}
-                  {index === 1 ? '🥈' : ''}
-                  {index === 2 ? '🥉' : ''}
-                  {index + 1}
-                </td>
-                <td><a href={explorerUrl} target="_blank">{item.address}</a></td>
-                <td>{item.totalGasUsdDisplay}</td>
-                <td>Ξ{Number(Number(item.totalGas)?.toFixed(5))}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -199,7 +200,7 @@ function useTopGasSpenders (timeRange: string) {
     .then((data: any) => data.result.gasSpenders)
   }, {
     enabled: true,
-    refetchInterval: refreshInterval * 10
+    refetchInterval: refreshInterval
   })
 
   return {
@@ -224,7 +225,7 @@ function useTopGasGuzzlers(timeRange: string) {
     .then((data: any) => data.result.gasGuzzlers)
   }, {
     enabled: true,
-    refetchInterval: refreshInterval * 10
+    refetchInterval: refreshInterval
   })
 
   return {
@@ -299,7 +300,7 @@ function SubHeader (props: any) {
   return (
     <div className={styles.subTitleContainer}>
       {/*<Countdown initialCount={refreshInterval / 1000} />*/}
-      <BlockInfo blockNumber={blockInfo?.block} gasPrice={blockInfo?.gasPrice} />
+      <BlockInfo blockNumber={blockInfo?.blockNumber} gasPrice={blockInfo?.gasPrice} />
       <div title="Current date and time in UTC">{date}</div>
     </div>
   )
@@ -311,26 +312,28 @@ function GasEstimates () {
   return (
     <div className={styles.gasEstimates}>
       <div className={styles.gasEstimatesHeader}>Estimated Cost of Transaction Actions:</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Action</th>
-            <th>Estimated Cost</th>
-            <th></th>
-            <th>Gas Limit</th>
-          </tr>
-        </thead>
-        <tbody>
-          {estimates.map((item: any, index: number) => (
-            <tr key={index}>
-              <td>{item.action}</td>
-              <td>{item.usdDisplay}</td>
-              <td>Ξ{Number(Number(item.eth)?.toFixed(5))}</td>
-              <td title={`Based on ${item.gasLimit} gas limit`}>{item.gasLimitDisplay}</td>
+      <div className={styles.tableContainer}>
+        <table>
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Estimated Cost</th>
+              <th></th>
+              <th>Gas Limit</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {estimates.map((item: any, index: number) => (
+              <tr key={index}>
+                <td>{item.action}</td>
+                <td>{item.usdDisplay}</td>
+                <td>Ξ{Number(Number(item.eth)?.toFixed(5))}</td>
+                <td title={`Based on ${item.gasLimit} gas limit`}>{item.gasLimitDisplay}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -406,8 +409,8 @@ function TimeRange (props: any) {
       <div className={styles.timeRange}>
         <button title="10 minutes" className={timeRange === '10m' ? styles.timeRangeButtonSelected : styles.timeRangeButton} onClick={() => onChange('10m')}>10m</button>
         <button title="1 hour" className={timeRange === '1h' ? styles.timeRangeButtonSelected : styles.timeRangeButton} onClick={() => onChange('1h')}>1H</button>
-        <button title="24 hours" className={timeRange === '24h' ? styles.timeRangeButtonSelected : styles.timeRangeButton} onClick={() => onChange('24h')}>24H</button>
-        <button title="7 days" className={timeRange === '7d' ? styles.timeRangeButtonSelected : styles.timeRangeButton} onClick={() => onChange('7d')}>7D</button>
+        <button disabled title="24 hours (NOT ENOUGH DATA YET)" className={timeRange === '24h' ? styles.timeRangeButtonSelected : styles.timeRangeButton} onClick={() => onChange('24h')}>24H</button>
+        <button disabled title="7 days (NOT ENOUGH DATA YET)" className={timeRange === '7d' ? styles.timeRangeButtonSelected : styles.timeRangeButton} onClick={() => onChange('7d')}>7D</button>
       </div>
     </div>
   )
@@ -419,7 +422,7 @@ function TableTab(props: any) {
     <div className={selected ? styles.tableTabSelected : styles.tableTab}>
       <h2 className={styles.tableTabTitle}>⛽ {title}</h2>
       <div className={styles.tableTabSubtitle}>{subtitle}</div>
-      <div className={styles.lastUpdatedBlock}>Last updated block {blockNumber}</div>
+      <div className={styles.tableTabsLastUpdatedBlock}>Last updated block {blockNumber}</div>
     </div>
   )
 }
@@ -474,8 +477,8 @@ function Main() {
   const { topGasGuzzlers } = useTopGasGuzzlers(tableTimeRange)
   const [activeTab, setActiveTab] = useState('tab1');
   const blockInfo = gasPrices?.[gasPrices?.length - 1]
-  const topGasGuzzlersBlockNumber = blockInfo?.block
-  const topGasSpendersBlockNumber = blockInfo?.block
+  const topGasGuzzlersBlockNumber = blockInfo?.blockNumber
+  const topGasSpendersBlockNumber = blockInfo?.blockNumber
 
   return (
     <main className={styles.main}>

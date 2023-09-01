@@ -1,13 +1,9 @@
-import { useEffect, useState } from 'react'
 import { DateTime } from 'luxon';
-import { Line } from '@nivo/line'
+import { ResponsiveLine } from '@nivo/line'
+import { useResizeDetector } from 'react-resize-detector'
 
-// make sure parent container have a defined height when using
-// responsive component, otherwise height will be 0 and
-// no chart will be rendered.
-// website examples showcase many properties,
-// you'll often use just a few of them.
 export function LineChart(props: any) {
+  const { width, ref }= useResizeDetector();
   let { gasPrices, timeRange } = props
 
   if (!gasPrices.length) {
@@ -38,25 +34,32 @@ export function LineChart(props: any) {
 
   const maxYValue = highestValue * 1.2;
   const minYValue = lowestValue * 0.8
+  const isMobile = width <= 650
 
   let tickValues = 'every 1 hour'
   if (timeRange === '10m') {
-    tickValues = 'every 2 minutes'
+    tickValues = isMobile ? 'every 5 minutes' : 'every 2 minutes'
   }
   if (timeRange === '1h') {
-    tickValues = 'every 10 minutes'
+    tickValues = isMobile ? 'every 30 minutes' : 'every 10 minutes'
   }
   if (timeRange === '24h') {
-    tickValues = 'every 4 hours'
+    tickValues = isMobile ? 'every 12 hours' : 'every 4 hours'
   }
   if (timeRange === '7d') {
-    tickValues = 'every 16 hours'
+    tickValues = isMobile ? 'very 3 days' : 'every 16 hours'
   }
 
   return (
-    <Line
-        width={700}
-        height={300}
+    <div
+      ref={ref}
+      style={{
+        width: '100%',
+        maxWidth: '700px',
+        height: '300px',
+      }}
+    >
+    <ResponsiveLine
         data={data}
         colors={['red']}
         margin={{ top: 20, right: 60, bottom: 50, left: 120 }}
@@ -120,5 +123,6 @@ export function LineChart(props: any) {
         useMesh={true}
         legends={[]}
     />
+    </div>
   )
 }
