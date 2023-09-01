@@ -62,6 +62,7 @@ const numbeFormatter = new Intl.NumberFormat('en-US')
 export class Controller {
   provider: any
   gasPriceProvider: any
+  promiseCache :any = {}
 
   constructor() {
     this.provider = getRpcProvider('optimism')
@@ -383,7 +384,7 @@ export class Controller {
   async handleGetTopGasSpenders (params: any[]) {
     const timeRange = params?.[0]?.toLowerCase()
     const timeRangeSeconds = this.getTimeRangeToSeconds(timeRange)
-    const currentTime = Math.floor(Date.now() / 1000)
+    const currentTime = Math.floor(DateTime.fromSeconds(Math.floor(Date.now() / 1000)).toUTC().startOf('hour').toSeconds())
     const gasSpenders = await this.rankAddressesForTimeRange('spenders', currentTime - timeRangeSeconds, currentTime)
     return {
       gasSpenders: gasSpenders.slice(0, 25)
@@ -393,7 +394,7 @@ export class Controller {
   async handleGetTopGasGuzzlers (params: any[]) {
     const timeRange = params?.[0]?.toLowerCase()
     const timeRangeSeconds = this.getTimeRangeToSeconds(timeRange)
-    const currentTime = Math.floor(Date.now() / 1000)
+    const currentTime = Math.floor(DateTime.fromSeconds(Math.floor(Date.now() / 1000)).toUTC().startOf('hour').toSeconds())
     const gasGuzzlers = await this.rankAddressesForTimeRange('guzzlers', currentTime - timeRangeSeconds, currentTime)
     return {
       gasGuzzlers: gasGuzzlers.slice(0, 25)
@@ -439,7 +440,16 @@ export class Controller {
   }
 
   async queryTransactions (kind: string, startTime: number, endTime: number): Promise<any[]> {
-    return new Promise((resolve, reject) => {
+    const key = `queryTransactions-${kind}-${startTime}-${endTime}`
+    const cachedP = await this.promiseCache[key]
+    if (cachedP) {
+      console.log('cachedP', key)
+      return cachedP
+    } else {
+      console.log('no cache', key)
+    }
+
+    const p: any = new Promise((resolve, reject) => {
       const results: any[] = []
       const stream = (kind === 'guzzlers' ? topGasGuzzlers : topGasSpenders).createReadStream({
         gte: `${startTime}-`,
@@ -468,9 +478,13 @@ export class Controller {
         reject(error)
       })
     })
+
+    this.promiseCache[key] = p
+
+    return p
   }
 
-  async getClosestEthPriceUsd(timestamp: number): Promise<number> {
+  async getClosestEthPriceUsd (timestamp: number): Promise<number> {
     let closestEthPrice: number | null = null;
     let smallestDifference = Infinity;
 
