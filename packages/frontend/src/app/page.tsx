@@ -5,36 +5,36 @@ import styles from './page.module.css'
 import { DateTime } from 'luxon'
 import { LineChart } from './components/LineChart'
 import { useQuery } from 'react-query'
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from 'react-query'
 import Skeleton from '@mui/material/Skeleton'
 
 const refreshInterval = 10 * 1000
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const Countdown = ({ initialCount = 10 }) => {
-  const [count, setCount] = useState(initialCount);
+  const [count, setCount] = useState(initialCount)
 
   useEffect(() => {
     // Set up the countdown timer
     const timerId = setTimeout(() => {
       // Reset the counter if it reaches zero
       if (count === 0) {
-        setCount(initialCount);
+        setCount(initialCount)
       } else {
-        setCount(count - 1);
+        setCount(count - 1)
       }
-    }, 1000);
+    }, 1000)
 
     // Clear the timer when the component unmounts or updates
-    return () => clearTimeout(timerId);
-  }, [count, initialCount]);
+    return () => clearTimeout(timerId)
+  }, [count, initialCount])
 
   return (
     <div>
       {`Next update in ${count}s`}
     </div>
-  );
-};
+  )
+}
 
 const GasTable = (props: any) => {
   const { title, subtitle, gasData } = props
@@ -475,7 +475,7 @@ function Main() {
   const { gasPrice, timestamp: gasPriceTimestamp } = useGetCurrentGasPrice()
   const { topGasSpenders } = useTopGasSpenders(tableTimeRange)
   const { topGasGuzzlers } = useTopGasGuzzlers(tableTimeRange)
-  const [activeTab, setActiveTab] = useState('tab1');
+  const [activeTab, setActiveTab] = useState('tab1')
   const blockInfo = gasPrices?.[gasPrices?.length - 1]
   const topGasGuzzlersBlockNumber = blockInfo?.blockNumber
   const topGasSpendersBlockNumber = blockInfo?.blockNumber
@@ -521,7 +521,7 @@ function Main() {
 }
 
 export default function Home() {
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient()
 
   return (
     <QueryClientProvider client={queryClient}>

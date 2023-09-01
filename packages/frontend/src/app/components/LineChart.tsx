@@ -1,9 +1,9 @@
-import { DateTime } from 'luxon';
+import { DateTime } from 'luxon'
 import { ResponsiveLine } from '@nivo/line'
 import { useResizeDetector } from 'react-resize-detector'
 
 export function LineChart(props: any) {
-  const { width, ref }= useResizeDetector();
+  const { width, ref } = useResizeDetector()
   let { gasPrices, timeRange } = props
 
   if (!gasPrices.length) {
@@ -19,9 +19,9 @@ export function LineChart(props: any) {
 
   const data = [
   {
-    "id": "linechart",
-    "color": "#ff0420",
-    "data": gasPrices.map((gasPrice: any) => {
+    id: 'linechart',
+    color: '#ff0420',
+    data: gasPrices.map((gasPrice: any) => {
       return {
         x: DateTime.fromSeconds(gasPrice.timestamp).toJSDate(),
         y: Number(Number(gasPrice.gasPrice.gwei).toFixed(8))
@@ -29,12 +29,12 @@ export function LineChart(props: any) {
     })
   }]
 
-  const highestValue = Math.max(...gasPrices.map((gasPrice: any) => Number(gasPrice.gasPrice.gwei)));
-  const lowestValue = Math.min(...gasPrices.map((gasPrice: any) => Number(gasPrice.gasPrice.gwei)));
+  const highestValue = Math.max(...gasPrices.map((gasPrice: any) => Number(gasPrice.gasPrice.gwei)))
+  const lowestValue = Math.min(...gasPrices.map((gasPrice: any) => Number(gasPrice.gasPrice.gwei)))
 
-  const maxYValue = highestValue * 1.2;
+  const maxYValue = highestValue * 1.2
   const minYValue = lowestValue * 0.8
-  const isMobile = width <= 650
+  const isMobile = !!width && width <= 650
 
   let tickValues = 'every 1 hour'
   if (timeRange === '10m') {
@@ -70,8 +70,8 @@ export function LineChart(props: any) {
           precision: "second"
         }}
         tooltip={({ point }: any) => {
-          const { data: { x, y } } = point;
-          const dt = DateTime.fromMillis(x.getTime());
+          const { data: { x, y } } = point
+          const dt = DateTime.fromMillis(x.getTime())
           const _x = dt.toRelative()
           return (
             <div>
@@ -79,7 +79,7 @@ export function LineChart(props: any) {
               <br />
               <span>{`Gwei: ${y.toString()}`}</span>
             </div>
-          );
+          )
         }}
         xFormat="time:%Y-%m-%d %H:%M:%S"
         yScale={{
@@ -97,7 +97,7 @@ export function LineChart(props: any) {
             tickPadding: 5,
             tickRotation: 0,
             format: (value: any) => {
-              const dt = DateTime.fromMillis(value.getTime());
+              const dt = DateTime.fromMillis(value.getTime())
               return dt.toRelative()
             },
             tickValues: tickValues,
