@@ -199,7 +199,7 @@ function useTopGasSpenders (timeRange: string) {
     .then((data: any) => data.result.gasSpenders)
   }, {
     enabled: true,
-    refetchInterval: refreshInterval
+    refetchInterval: refreshInterval * 10
   })
 
   return {
@@ -224,7 +224,7 @@ function useTopGasGuzzlers(timeRange: string) {
     .then((data: any) => data.result.gasGuzzlers)
   }, {
     enabled: true,
-    refetchInterval: refreshInterval
+    refetchInterval: refreshInterval * 10
   })
 
   return {
