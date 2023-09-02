@@ -169,10 +169,18 @@
   margin-bottom: 1rem;
 }
 
+.gasEstimates table {
+  min-width: 460px;
+}
+
 @media (max-width: 650px) {
   .gasEstimates {
     width: 100%;
     padding: 0 2rem;
+  }
+
+  .gasEstimates table {
+    min-width: 0;
   }
 }
 

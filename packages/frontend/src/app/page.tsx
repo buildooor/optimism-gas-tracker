@@ -365,6 +365,26 @@ function GasEstimates () {
                 <td title={`Based on ${item.gasLimit} gas limit`}>{item.gasLimitDisplay}</td>
               </tr>
             ))}
+            {!estimates?.length && (
+              [1,2,3].map((_, i: number) => {
+                return (
+                  <tr key={i}>
+                    <td>
+                      <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(0, 0, 0, .1)' }} width="100%" height={30} />
+                    </td>
+                    <td>
+                      <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(0, 0, 0, .1)' }} width="100%" height={30} />
+                    </td>
+                    <td>
+                      <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(0, 0, 0, .1)' }} width="100%" height={30} />
+                    </td>
+                    <td>
+                      <Skeleton variant="rounded" sx={{ bgcolor: 'rgba(0, 0, 0, .1)' }} width="100%" height={30} />
+                    </td>
+                  </tr>
+                )
+              })
+            )}
           </tbody>
         </table>
       </div>
