@@ -1,6 +1,7 @@
 import level from 'level'
 import subleveldown from 'subleveldown'
 import txEstimates from '../config/txEstimates.json'
+import addressAliases from '../config/addressAliases.json'
 import wait from 'wait'
 import { DateTime } from 'luxon'
 import { DbController } from './DbController'
@@ -413,6 +414,7 @@ export class Controller {
         const totalGasEth = formatUnits(totalGas.toString(), 18)
         return {
           address,
+          alias: addressAliases[address],
           totalGas: totalGasEth,
           totalGasUsd: totalGasUsd,
           totalGasUsdDisplay: currencyFormatter.format(totalGasUsd)

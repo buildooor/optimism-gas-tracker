@@ -276,6 +276,11 @@
   max-width: 780px
 }
 
+.tableAddressAlias {
+  font-size: 0.7rem;
+  opacity: 0.5;
+}
+
 .timeRangeContainer {
   display: flex;
   justify-content: space-between;

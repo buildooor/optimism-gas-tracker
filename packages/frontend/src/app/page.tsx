@@ -327,7 +327,10 @@ function RankTable (props: any) {
                     {index === 2 ? '🥉' : ''}
                     {index + 1}
                   </td>
-                  <td><a className={styles.code} href={explorerUrl} target="_blank">{item.address}</a></td>
+                  <td>
+                    <a className={styles.code} href={explorerUrl} target="_blank">{item.address}</a>
+                    <div className={styles.tableAddressAlias}>{item.alias}</div>
+                  </td>
                   <td>{item.totalGasUsdDisplay}</td>
                   <td>Ξ{Number(Number(item.totalGas)?.toFixed(5))}</td>
                 </tr>
