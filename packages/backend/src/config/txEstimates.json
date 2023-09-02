@@ -1,0 +1,8 @@
+{
+  "ETH Transfer": 21000,
+  "ERC20 Transfer": 75000,
+  "NFT Transfer": 100000,
+  "Uniswap Swap": 250000,
+  "NFT Mint": 150000,
+  "Deploy Contract": 500000
+}

@@ -1,5 +1,6 @@
 import level from 'level'
 import subleveldown from 'subleveldown'
+import txEstimates from '../config/txEstimates.json'
 import wait from 'wait'
 import { DateTime } from 'luxon'
 import { DbController } from './DbController'
@@ -13,25 +14,8 @@ import { numberFormatter } from '../utils/numberFormatter'
 import { promiseQueue } from '../utils/promiseQueue'
 import { providers } from 'ethers'
 import { removeOutliersByZScore } from '../utils/removeOutliersByZScore'
+import { rpcUrls } from '../config/rpcUrls'
 import { withTimeout } from '../utils/withTimeout'
-
-const rpcUrls: string[] = [
-  // 'https://rpc.ankr.com/optimism',
-  // 'https://optimism.blockpi.network/v1/rpc/public',
-  'https://opt-mainnet.g.alchemy.com/v2/demo',
-  // 'https://optimism-mainnet.public.blastapi.io',
-  // 'https://api.zan.top/node/v1/opt/mainnet/public',
-  'https://optimism.publicnode.com',
-  /// 'https://optimism.meowrpc.com',
-  // 'https://mainnet.optimism.io',
-  'https://rpc.optimism.gateway.fm'
-  // 'https://gateway.tenderly.co/public/optimism',
-  // 'https://optimism.gateway.tenderly.co',
-  // 'https://1rpc.io/op',
-  // 'https://optimism.drpc.org',
-  // 'https://optimism.api.onfinality.io/public',
-  // 'https://endpoints.omniatech.io/v1/op/mainnet/public'
-]
 
 const db = level(dbPath)
 const syncStateDb = subleveldown(db, 'syncState')
@@ -132,16 +116,17 @@ export class Controller {
   }
 
   async getGasEstimate (gasLimit: number) {
-    const l1Fees = 0.000017204380301695 // TODO: calculate this
-    const { eth: gasPrice } = await this.getOnchainGasPrice()
     const usdPrice = await this.getCurrentEthUsdPrice()
 
-    const l2Fees = Number(gasPrice) * gasLimit
-    const totalFees = l1Fees + l2Fees
-    const usdEstimate = totalFees * usdPrice
+    const { baseFeePerGas: l2BaseFee } = await this.gasPriceProvider.getBlock('latest')
+    const { maxPriorityFeePerGas: l2PriorityFee } = await this.gasPriceProvider.getFeeData()
+    const txGasPrice = l2BaseFee.add(l2PriorityFee)
+    const l2ExecutionFee = txGasPrice.mul(gasLimit)
+    const l2ExecutionFeeEth = Number(formatUnits(l2ExecutionFee, 18))
+    const usdEstimate = l2ExecutionFeeEth * usdPrice
 
     return {
-      eth: totalFees,
+      eth: l2ExecutionFeeEth,
       usd: usdEstimate,
       usdDisplay: currencyFormatter.format(usdEstimate)
     }
@@ -260,14 +245,8 @@ export class Controller {
   }
 
   async handleGetGasEstimates () {
-    const mapping = {
-      'ETH Transfer': 21_000,
-      'ERC20 Transfer': 40_000,
-      'Uniswap Swap': 200_000
-    }
-
     const estimates: any[] = []
-    for (const [key, value] of Object.entries(mapping)) {
+    for (const [key, value] of Object.entries(txEstimates)) {
       const gasEstimate = await this.getGasEstimate(value)
       estimates.push({
         action: key,
