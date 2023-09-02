@@ -2,7 +2,7 @@ import os from 'os'
 import pidusage from 'pidusage'
 import wait from 'wait'
 
-export class OsStats {
+export class OsController {
   statsPollIntervalMs: number = 60 * 1000
 
   async start () {

@@ -1,13 +1,13 @@
-import cors from 'cors'
 import express from 'express'
-import { Controller } from './controller'
+import { Controller } from './controllers/MainController'
+import { corsMiddleware } from './middleware/corsMiddleware'
 import { port } from './config'
-import { responseCache } from './responseCache'
+import { responseCache } from './middleware/responseCache'
 
 const app = express()
 
 app.enable('trust proxy')
-app.use(cors())
+app.use(corsMiddleware())
 app.use(express.json({ limit: '500kb' }))
 app.use(express.urlencoded({ extended: false, limit: '500kb', parameterLimit: 50 }))
 

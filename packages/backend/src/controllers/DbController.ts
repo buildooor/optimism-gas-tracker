@@ -1,10 +1,10 @@
 import pgp from 'pg-promise'
+import { postgresConfig } from '../config'
 import { v4 as uuid } from 'uuid'
-import { postgresConfig } from './config'
 
 const argv = require('minimist')(process.argv.slice(2))
 
-export class Db {
+export class DbController {
   db: any
 
   constructor () {
@@ -32,7 +32,7 @@ export class Db {
     const migration = argv.migration
     if (migration) {
       // await this.db.query(`
-      //   ALTER TABLE transfers ADD COLUMN IF NOT EXISTS preregenesis BOOLEAN
+      //   ALTER TABLE spenders ADD COLUMN IF NOT EXISTS test BOOLEAN
       // `)
     }
 

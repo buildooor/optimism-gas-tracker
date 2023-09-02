@@ -1,4 +1,4 @@
-import { OsStats } from '../OsStats'
+import { OsController } from '../controllers/OsController'
 import { actionHandler, root } from './shared'
 import { server, worker } from '../server'
 
@@ -10,9 +10,8 @@ export const workerProgram = root
 async function main (source: any) {
   console.log('starting server')
 
-  const osStats = new OsStats()
-
   worker()
   server()
-  await osStats.start()
+  const osController = new OsController()
+  await osController.start()
 }

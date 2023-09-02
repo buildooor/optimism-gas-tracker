@@ -18,7 +18,7 @@ interface IResult {
 
 export class CoinGecko {
   apiKey: string
-  private _baseUrl: string = 'https://api.coingecko.com/api/v3'
+  private readonly _baseUrl: string = 'https://api.coingecko.com/api/v3'
   cacheTimeMs = 5 * 60 * 1000
 
   constructor (apiKey?: string) {
@@ -71,7 +71,7 @@ export class CoinGecko {
     }
   }
 
-  private _normalizePrice = (price: string | number) => {
+  private readonly _normalizePrice = (price: string | number) => {
     price = Number(price)
 
     // If the API call did not return a number, throw an error
@@ -81,4 +81,8 @@ export class CoinGecko {
 
     return price
   }
+}
+
+export class PriceFeed extends CoinGecko {
+
 }
