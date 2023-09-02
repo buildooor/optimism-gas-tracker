@@ -1,5 +1,5 @@
 [
-  'http://localhost:3000',
-  'https://optimismgastracker.com',
-  'https://optimism-gas-tracker.vercel.app'
+  "http://localhost:3000",
+  "https://optimismgastracker.com",
+  "https://optimism-gas-tracker.vercel.app"
 ]
