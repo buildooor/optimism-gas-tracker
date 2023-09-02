@@ -391,6 +391,9 @@ function GasEstimates () {
           </tbody>
         </table>
       </div>
+      <div className={styles.gasEstimatesFooter}>
+        Estimated cost = <code>(l2BaseFeePerGas + l2MaxPriorityFeePerGasFee) * l2GasLimit</code>
+      </div>
     </div>
   )
 }

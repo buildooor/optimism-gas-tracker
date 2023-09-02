@@ -173,6 +173,14 @@
   min-width: 460px;
 }
 
+.gasEstimatesFooter {
+  margin-top: 1rem;
+  opacity: 0.5;
+  font-size: 0.6rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
 @media (max-width: 650px) {
   .gasEstimates {
     width: 100%;
