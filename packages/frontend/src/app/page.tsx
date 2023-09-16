@@ -44,7 +44,7 @@ function useDate() {
 }
 
 function useRelativeDate(timestamp: number) {
-  const { isLoading, data, error } = useQuery([`relativedate:${timestamp}`, timestamp], async () => {
+  const { isLoading, data, error } = useQuery([`relativedate-${timestamp}`, timestamp], async () => {
     if (!timestamp) {
       return ''
     }
@@ -113,7 +113,7 @@ function useTimeRange(defaultValue: string) {
 }
 
 function useGasPrices(timeRange: string) {
-  const { isLoading, data, error } = useQuery(['gasPrices', timeRange], async () => {
+  const { isLoading, data, error } = useQuery([`gasPrices-${timeRange}`, timeRange], async () => {
     return fetchData('gasTracker_getHistoricalGasPrices', [timeRange])
     .then((data: any) => data.result.gasPrices)
   }, {
@@ -127,7 +127,7 @@ function useGasPrices(timeRange: string) {
 }
 
 function useTopGasSpenders (timeRange: string) {
-  const { isLoading, data, error } = useQuery(['topGasSpenders', [timeRange]], async () => {
+  const { isLoading, data, error } = useQuery([`topGasSpenders-${timeRange}`, [timeRange]], async () => {
     return fetchData('gasTracker_getTopGasSpenders', [timeRange])
     .then((data: any) => data.result.gasSpenders)
   }, {
@@ -141,7 +141,7 @@ function useTopGasSpenders (timeRange: string) {
 }
 
 function useTopGasGuzzlers(timeRange: string) {
-  const { isLoading, data, error } = useQuery(['topGasGuzzlers', timeRange], async () => {
+  const { isLoading, data, error } = useQuery([`topGasGuzzlers-${timeRange}`, timeRange], async () => {
     return fetchData('gasTracker_getTopGasGuzzlers', [timeRange])
     .then((data: any) => data.result.gasGuzzlers)
   }, {
@@ -508,7 +508,13 @@ function Main() {
 }
 
 export default function Home() {
-  const queryClient = new QueryClient()
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retryDelay: (attemptIndex: number) => 10 * 1000,
+      },
+    }
+  })
 
   return (
     <QueryClientProvider client={queryClient}>
