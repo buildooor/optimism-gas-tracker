@@ -249,8 +249,8 @@ function TimeRange (props: any) {
       <div className={styles.timeRange}>
         <button title="10 minutes" className={timeRange === '10m' ? styles.timeRangeButtonSelected : styles.timeRangeButton} onClick={() => onChange('10m')}>10m</button>
         <button title="1 hour" className={timeRange === '1h' ? styles.timeRangeButtonSelected : styles.timeRangeButton} onClick={() => onChange('1h')}>1H</button>
-        <button disabled title="24 hours (NOT ENOUGH DATA YET)" className={timeRange === '24h' ? styles.timeRangeButtonSelected : styles.timeRangeButton} onClick={() => onChange('24h')}>24H</button>
-        <button disabled title="7 days (NOT ENOUGH DATA YET)" className={timeRange === '7d' ? styles.timeRangeButtonSelected : styles.timeRangeButton} onClick={() => onChange('7d')}>7D</button>
+        <button title="24 hours" className={timeRange === '24h' ? styles.timeRangeButtonSelected : styles.timeRangeButton} onClick={() => onChange('24h')}>24H</button>
+        <button title="7 days" className={timeRange === '7d' ? styles.timeRangeButtonSelected : styles.timeRangeButton} onClick={() => onChange('7d')}>7D</button>
       </div>
     </div>
   )

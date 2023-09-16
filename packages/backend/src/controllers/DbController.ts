@@ -105,6 +105,31 @@ export class DbController {
     )
   }
 
+  async getTopGuzzlersSpenders (opts: any = {}) {
+    const { kind, startTimestamp, endTimestamp, limit, offset } = opts
+    const sql = `
+      SELECT
+          address,
+          SUM(gas_used * gas_price) / 1e18 AS "totalGas",
+          SUM(gas_used * gas_price * eth_price_usd) / 1e18 AS "totalGasUsd"
+      FROM
+          ${kind}
+      WHERE
+        timestamp BETWEEN $1 AND $2
+      GROUP BY
+          address
+      ORDER BY
+          "totalGasUsd" DESC
+      LIMIT
+        $3
+      OFFSET
+        $4
+    `
+
+    return this.db.any(
+      sql, [startTimestamp, endTimestamp, limit, offset])
+  }
+
   async getGasPrices (opts: any = {}) {
     const { startTimestamp, endTimestamp, limit, offset } = opts
     return this.db.any(

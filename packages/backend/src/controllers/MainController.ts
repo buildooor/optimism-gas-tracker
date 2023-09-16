@@ -1,7 +1,7 @@
+import addressAliases from '../config/addressAliases.json'
 import level from 'level'
 import subleveldown from 'subleveldown'
 import txEstimates from '../config/txEstimates.json'
-import addressAliases from '../config/addressAliases.json'
 import wait from 'wait'
 import { DateTime } from 'luxon'
 import { DbController } from './DbController'
@@ -385,43 +385,16 @@ export class Controller {
     // return p
   }
 
-  async rankAddressesForTimeRange (kind: string, startTime: number, endTime: number): Promise<any[]> {
-    const transactions = await this.queryTransactions(kind, startTime, endTime)
-    const gasUsageByAddress: any = {}
-
-    for (const tx of transactions) {
-      const totalGas = BigInt(tx.gasUsed * tx.gasPrice)
-      const totalGasUsd = Number(formatUnits(totalGas.toString(), 18)) * tx.ethPriceUsd
-      if (gasUsageByAddress[tx.address]) {
-        const v = BigInt(gasUsageByAddress[tx.address].totalGas)
-        const res = BigInt(totalGas) + v
-
-        const v1 = gasUsageByAddress[tx.address].totalGasUsd
-        const res1 = totalGasUsd + Number(v1)
-        gasUsageByAddress[tx.address].totalGas = res
-        gasUsageByAddress[tx.address].totalGasUsd = res1
-      } else {
-        gasUsageByAddress[tx.address] = {
-          totalGas,
-          totalGasUsd
-        }
+  async rankAddressesForTimeRange (kind: string, startTimestamp: number, endTimestamp: number): Promise<any[]> {
+    const items = await this.db.getTopGuzzlersSpenders({ kind, startTimestamp, endTimestamp, limit: 25, offset: 0 })
+    return items.map((item: any) => {
+      return {
+        address: item.address,
+        alias: addressAliases[item.address],
+        totalGas: item.totalGas,
+        totalGasUsd: item.totalGasUsd,
+        totalGasUsdDisplay: currencyFormatter.format(item.totalGasUsd)
       }
-    }
-
-    const sortedAddresses = Object.entries(gasUsageByAddress)
-      .map(([address, item]: any) => {
-        const { totalGas, totalGasUsd } = item
-        const totalGasEth = formatUnits(totalGas.toString(), 18)
-        return {
-          address,
-          alias: addressAliases[address],
-          totalGas: totalGasEth,
-          totalGasUsd: totalGasUsd,
-          totalGasUsdDisplay: currencyFormatter.format(totalGasUsd)
-        }
-      })
-      .sort((a: any, b: any) => (Number(b.totalGasUsd) - Number(a.totalGasUsd)))
-
-    return sortedAddresses
+    })
   }
 }
