@@ -11,6 +11,7 @@ import Skeleton from '@mui/material/Skeleton'
 const fastRefreshInterval = 10 * 1000
 const slowRefreshInterval = 60 * 1000
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const bannerMsg = process.env.NEXT_PUBLIC_BANNER_MSG
 
 async function fetchData (method: string, params: any[] = []) {
   return fetch(apiUrl, {
@@ -154,10 +155,13 @@ function useTopGasGuzzlers(timeRange: string) {
 }
 
 function Banner () {
+  if (!bannerMsg) {
+    return null
+  }
   return (
     <div className={styles.banner}>
       <div className={styles.innerBanner}>
-        {'⚠️ This project is still in development.'}
+        {bannerMsg}
       </div>
     </div>
   )

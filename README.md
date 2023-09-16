@@ -2,8 +2,6 @@
 
 > Optimism gas tracker site for the Optimism mainnet network.
 
-⚠️ This project is still in development.
-
 ![Screenshot](https://user-images.githubusercontent.com/168240/263599587-838cb3d4-7d6b-46d3-b21c-352778edc167.png)
 
 ## Live
