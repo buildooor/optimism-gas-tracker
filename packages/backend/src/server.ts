@@ -2,6 +2,7 @@ import express from 'express'
 import { Controller } from './controllers/MainController'
 import { corsMiddleware } from './middleware/corsMiddleware'
 import { port } from './config'
+import { rateLimitMiddleware } from './middleware/rateLimit'
 import { responseCache } from './middleware/responseCache'
 
 const app = express()
@@ -10,6 +11,7 @@ app.enable('trust proxy')
 app.use(corsMiddleware())
 app.use(express.json({ limit: '500kb' }))
 app.use(express.urlencoded({ extended: false, limit: '500kb', parameterLimit: 50 }))
+app.use(rateLimitMiddleware)
 
 const controller = new Controller()
 
