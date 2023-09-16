@@ -47,7 +47,7 @@ export function LineChart(props: any) {
     tickValues = isMobile ? 'every 12 hours' : 'every 4 hours'
   }
   if (timeRange === '7d') {
-    tickValues = isMobile ? 'very 3 days' : 'every 16 hours'
+    tickValues = isMobile ? 'every 3 days' : 'every 24 hours'
   }
 
   return (
